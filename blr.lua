@@ -23,7 +23,10 @@ local Tabs = {
 local Options = Library.Options
 local Toggles = Library.Toggles
 
--- Welcome Message
+--------------------------------------------------
+-- 👋 Welcome Tab
+--------------------------------------------------
+
 local playerName = game.Players.LocalPlayer.DisplayName
 Tabs.Main:AddLeftGroupbox("Info"):AddLabel("Welcome, " .. playerName .. "!\nThis is the main hub for Blue Lock: Rivals.", true)
 
@@ -33,7 +36,7 @@ Tabs.Main:AddLeftGroupbox("Info"):AddLabel("Welcome, " .. playerName .. "!\nThis
 
 local AutoGroup = Tabs.AutoSpin:AddLeftGroupbox("Auto Spin")
 
--- Get styles (folder names)
+-- Dropdown com estilos
 local styleList = {}
 local abilitiesFolder = game:GetService("ReplicatedStorage")
 	:WaitForChild("Controllers")
@@ -44,7 +47,6 @@ for _, style in ipairs(abilitiesFolder:GetChildren()) do
 	table.insert(styleList, style.Name)
 end
 
--- Dropdown for target style
 AutoGroup:AddDropdown("StyleDropdown", {
 	Values = styleList,
 	Default = 1,
@@ -53,14 +55,18 @@ AutoGroup:AddDropdown("StyleDropdown", {
 	Tooltip = "Spins until you get this style",
 })
 
--- Toggle Auto Spin (WITHOUT logic here)
+AutoGroup:AddToggle("LuckySpinToggle", {
+	Text = "Use Lucky Spin?",
+	Default = false,
+	Tooltip = "Enable Lucky Spin instead of the normal one",
+})
+
 AutoGroup:AddToggle("AutoSpinToggle", {
 	Text = "Enable Auto Spin",
 	Default = false,
 	Tooltip = "Will spin until you get the selected style",
 })
 
--- Spin logic using recommended OnChanged method
 Toggles.AutoSpinToggle:OnChanged(function(enabled)
 	if not Options.StyleDropdown or not Options.StyleDropdown.Value then
 		Library:Notify("⚠️ Please select a target style first.", 5)
@@ -92,7 +98,8 @@ Toggles.AutoSpinToggle:OnChanged(function(enabled)
 		task.spawn(function()
 			while Toggles.AutoSpinToggle and Toggles.AutoSpinToggle.Value do
 				pcall(function()
-					spinFunction:FireServer()
+					local useLucky = Toggles.LuckySpinToggle and Toggles.LuckySpinToggle.Value
+					spinFunction:FireServer(useLucky)
 				end)
 				task.wait(0.3)
 			end
@@ -103,7 +110,7 @@ Toggles.AutoSpinToggle:OnChanged(function(enabled)
 end)
 
 --------------------------------------------------
--- ⚙️ MISC TAB (Menu + Theme + Unload)
+-- ⚙️ MISC TAB
 --------------------------------------------------
 
 local MenuGroup = Tabs.Misc:AddLeftGroupbox("Menu")
@@ -121,3 +128,4 @@ end)
 
 Library.ToggleKeybind = Options.MenuKeybind
 
+-- Theme/Config
