@@ -6,7 +6,7 @@ local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 
 local Window = Library:CreateWindow({
     Title = "Blue Lock: Rivals",
-    Footer = "Blue Lock: Rivals V1.0",
+    Footer = "Blue Lock: Rivals V1.5",
     Icon = 1234567890,
     AutoShow = true,
     ShowCustomCursor = true,
