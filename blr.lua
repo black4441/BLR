@@ -224,6 +224,21 @@ end)
 --------------------------------------------------
 
 local MenuGroup = Tabs.Misc:AddLeftGroupbox("Menu")
+local CooldownGroup = Tabs.Misc:AddRightGroupbox("Cooldown")
+
+CooldownGroup:AddButton("No Ability Cooldown", function()
+	local AbilityController = require(game:GetService("ReplicatedStorage"):WaitForChild("Controllers"):WaitForChild("AbilityController"))
+
+	if not getgenv().OriginalCooldownHooked then
+		getgenv().OriginalCooldownHooked = hookfunction(AbilityController.AbilityCooldown, function(self)
+			return
+		end)
+
+		Library:Notify("✅ No Ability Cooldown Enabled.\nRejoin the game to disable it.", 6)
+	else
+		Library:Notify("⚠️ No Ability Cooldown is already active.", 4)
+	end
+end)
 
 MenuGroup:AddLabel("Menu bind")
 	:AddKeyPicker("MenuKeybind", {
