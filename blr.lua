@@ -16,8 +16,10 @@ local Window = Library:CreateWindow({
 
 local Tabs = {
     Main = Window:AddTab("Welcome", "user"),
+    AutoDribble = Window:AddTab("Auto Dribble", "volleyball"),
     AutoSpin = Window:AddTab("Auto Spin", "coins"),
     Misc = Window:AddTab("Misc", "settings"),
+
 }
 
 local Options = Library.Options
@@ -29,6 +31,114 @@ local Toggles = Library.Toggles
 
 local playerName = game.Players.LocalPlayer.DisplayName
 Tabs.Main:AddLeftGroupbox("Info"):AddLabel("Welcome, " .. playerName .. "!\nThis is the main hub for Blue Lock: Rivals.", true)
+
+--------------------------------------------------
+-- 🕹️ AUTO DRIBBLE TAB
+--------------------------------------------------
+
+
+local DribbleGroup = Tabs.AutoDribble:AddLeftGroupbox("Auto Dribble")
+
+DribbleGroup:AddToggle("AutoDribbleToggle", {
+	Text = "Enable Auto Dribble",
+	Default = false,
+	Tooltip = "Automatically performs dribbles when someone tries to slide",
+})
+
+-- Auto Dribble Logic
+Toggles.AutoDribbleToggle:OnChanged(function(enabled)
+	getgenv().AutoDribbleSettings = {
+		Enabled = enabled,
+		range = 30 -- pode ajustar aqui se quiser
+	}
+
+	if enabled then
+		Library:Notify("🕹️ Auto Dribble Enabled!", 4)
+
+		local ReplicatedStorage = game:GetService("ReplicatedStorage")
+		local Players = game:GetService("Players")
+		local RunService = game:GetService("RunService")
+
+		local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
+		local function GetCharacter()
+			local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+			return char, char:WaitForChild("HumanoidRootPart"), char:WaitForChild("Humanoid")
+		end
+
+		local Character, HRP, Humanoid = GetCharacter()
+		LocalPlayer.CharacterAdded:Connect(function()
+			Character, HRP, Humanoid = GetCharacter()
+		end)
+
+		local DribbleEvent = ReplicatedStorage.Packages.Knit.Services.BallService.RE.Dribble
+		local Animations = require(ReplicatedStorage.Assets.Animations)
+
+		local function LoadDribbleAnimation(style)
+			if Animations.Dribbles[style] then
+				local anim = Instance.new("Animation")
+				anim.AnimationId = Animations.Dribbles[style]
+				return Humanoid:LoadAnimation(anim)
+			end
+		end
+
+		local function IsSliding(plr)
+			if plr ~= LocalPlayer and plr.Character then
+				local char = plr.Character
+				local slideValue = char:FindFirstChild("Values") and char.Values:FindFirstChild("Sliding")
+				local hum = char:FindFirstChildOfClass("Humanoid")
+				return (slideValue and slideValue.Value) or (hum and hum.MoveDirection.Magnitude > 0 and hum.WalkSpeed == 0)
+			end
+		end
+
+		local function IsEnemy(plr)
+			return LocalPlayer.Team and plr.Team and LocalPlayer.Team ~= plr.Team
+		end
+
+		local function PerformDribble(distance)
+			if getgenv().AutoDribbleSettings.Enabled and Character:FindFirstChild("Values") and Character.Values.HasBall.Value then
+				DribbleEvent:FireServer()
+				local style = LocalPlayer:FindFirstChild("PlayerStats") and LocalPlayer.PlayerStats:FindFirstChild("Style") and LocalPlayer.PlayerStats.Style.Value
+				local anim = LoadDribbleAnimation(style)
+				if anim then
+					anim:Play()
+					anim:AdjustSpeed(math.clamp(1 + (10 - distance) / 10, 1, 2))
+				end
+				local ball = workspace:FindFirstChild("Football")
+				if ball then
+					ball.AssemblyLinearVelocity = Vector3.new()
+					ball.CFrame = HRP.CFrame * CFrame.new(0, -2.5, 0)
+				end
+			end
+		end
+
+		-- Conecta o loop no Heartbeat
+		getgenv().AutoDribbleConnection = RunService.Heartbeat:Connect(function()
+			if getgenv().AutoDribbleSettings.Enabled and Character and HRP then
+				for _, plr in pairs(Players:GetPlayers()) do
+					if IsEnemy(plr) and IsSliding(plr) then
+						local theirHRP = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+						if theirHRP then
+							local dist = (theirHRP.Position - HRP.Position).Magnitude
+							if dist <= getgenv().AutoDribbleSettings.range then
+								PerformDribble(dist)
+								break
+							end
+						end
+					end
+				end
+			end
+		end)
+
+	else
+		if getgenv().AutoDribbleConnection then
+			getgenv().AutoDribbleConnection:Disconnect()
+			getgenv().AutoDribbleConnection = nil
+		end
+		Library:Notify("⏹️ Auto Dribble Disabled!", 4)
+	end
+end)
+
+
 
 --------------------------------------------------
 -- 🌀 AUTO SPIN TAB
